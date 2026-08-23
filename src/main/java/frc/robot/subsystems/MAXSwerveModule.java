@@ -8,14 +8,19 @@ import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
+import com.revrobotics.sim.SparkFlexSim;
+import com.revrobotics.sim.SparkMaxSim;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.Configs;
 
 public class MAXSwerveModule {
@@ -27,6 +32,9 @@ public class MAXSwerveModule {
 
   private final SparkClosedLoopController m_drivingClosedLoopController;
   private final SparkClosedLoopController m_turningClosedLoopController;
+
+  private final SparkFlexSim m_drivingSim;
+  private final SparkMaxSim m_turningSim;
 
   private double m_chassisAngularOffset = 0;
   private SwerveModuleState m_desiredState = new SwerveModuleState(0.0, new Rotation2d());
@@ -45,6 +53,11 @@ public class MAXSwerveModule {
 
     m_drivingClosedLoopController = m_drivingSpark.getClosedLoopController();
     m_turningClosedLoopController = m_turningSpark.getClosedLoopController();
+
+    m_drivingSim =
+        RobotBase.isSimulation() ? new SparkFlexSim(m_drivingSpark, DCMotor.getNEO(1)) : null;
+    m_turningSim =
+        RobotBase.isSimulation() ? new SparkMaxSim(m_turningSpark, DCMotor.getNeo550(1)) : null;
 
     // Apply the respective configurations to the SPARKS. Reset parameters before
     // applying the configuration to bring the SPARK to a known good state. Persist
@@ -125,6 +138,21 @@ public class MAXSwerveModule {
   /** Zeroes all the SwerveModule encoders. */
   public void resetEncoders() {
     m_drivingEncoder.setPosition(0);
+  }
+
+  /** Writes simulated wheel and steering measurements into the REV simulation devices. */
+  public void setSimState(SwerveModulePosition position, SwerveModuleState state) {
+    if (m_drivingSim == null || m_turningSim == null) {
+      return;
+    }
+
+    m_drivingSim.getRelativeEncoderSim().setPosition(position.distanceMeters);
+    m_drivingSim.getRelativeEncoderSim().setVelocity(state.speedMetersPerSecond);
+
+    double absoluteAngle = position.angle.getRadians() + m_chassisAngularOffset;
+    m_turningSim
+        .getAbsoluteEncoderSim()
+        .setPosition(MathUtil.inputModulus(absoluteAngle, 0.0, 2.0 * Math.PI));
   }
 
   public double getDriveCurrent() {

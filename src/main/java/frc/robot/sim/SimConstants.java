@@ -59,6 +59,7 @@ public final class SimConstants {
    * Creates a fully configured DriveTrainSimulationConfig for our robot. Uses NEO motors (same as
    * our MAXSwerve modules) and MAXSwerve gearing.
    */
+  @SuppressWarnings("unchecked") // Maple's generic-varargs constructor creates this warning.
   public static DriveTrainSimulationConfig createDriveTrainConfig() {
     return new DriveTrainSimulationConfig(
         kRobotMass,
@@ -66,7 +67,7 @@ public final class SimConstants {
         kBumperWidthY,
         kTrackLength,
         kTrackWidth,
-        COTS.ofPigeon2(), // Gyro sim (closest available; we use ADIS16470 on real robot)
+        COTS.ofPigeon2(), // Matches the real robot's Pigeon 2 gyro
         COTS.ofMAXSwerve(
             DCMotor.getNEO(1), // Drive motor: NEO
             DCMotor.getNeo550(1), // Steer motor: NEO 550

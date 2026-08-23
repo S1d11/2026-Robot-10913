@@ -23,12 +23,10 @@ public final class Constants {
     // the robot, rather the allowed maximum speeds
     public static final double kMaxSpeedMetersPerSecond =
         4.5; // DEBUG:DRIVE_MAX_SPEED - Maximum drive speed (m/s)
-    // change for extra speed orginally 2.4
     public static final double kMaxAngularSpeed =
         1.7 * Math.PI; // DEBUG:DRIVE_MAX_ANGULAR_SPEED - Maximum rotation speed (rad/s)
-    // changed max angular speed at 3:41
+
     // Chassis configuration
-    // change for extra speed orginally 1.4
     public static final double kTrackWidth =
         Units.inchesToMeters(26.5); // DEBUG:DRIVE_TRACK_WIDTH - Left-to-right wheel distance
     // Distance between centers of right and left wheels on robot
@@ -162,21 +160,21 @@ public final class Constants {
   // HOPPER (1 motor):
   //   CAN 12 - Hopper Motor (SparkMax NEO) - See HopperConstants.java
   //
-  // SHOOTER (1 motor):
-  //   CAN 13 - Shooter Top Motor (SparkFlex NEO Vortex) - See ShooterConstants.java
+  // SHOOTER (2 motors):
+  //   CAN 13 - Shooter Leader (SparkFlex NEO Vortex) - See ShooterConstants.java
+  //   CAN 14 - Shooter Follower (SparkFlex NEO Vortex) - See ShooterConstants.java
   //
   // === IMPORTANT SUBSYSTEM VALUES ===
   //
   // SHOOTER:
-  //   - Gear Ratio: 2:1 (motor @ 4000 RPM → flywheel @ 2000 RPM)
-  //   - Velocity Conversion Factor: 0.5
-  //   - Close Preset: 3000 RPM (flywheel speed)
-  //   - At Distance Preset: 5200 RPM (flywheel speed)
-  //   - Tolerance: ±150 RPM
+  //   - Gear Ratio: 3:2 motor-to-flywheel reduction
+  //   - Velocity Conversion Factor: 0.667
+  //   - Close Preset: 3150 RPM (flywheel speed)
+  //   - At Distance Preset: 4750 RPM (flywheel speed)
+  //   - Tolerance: ±75 RPM
   //   - PID: Kp=0.0001, Ki=0.0, Kd=0.0, Kv=0.0021
   //
   // HOPPER:
-  //   - Idle RPM: 1500
   //   - Feed RPM: 5000
   //   - Tolerance: ±200 RPM
   //   - PID: Kp=0.0001, Ki=0.0, Kd=0.0, Kv=0.0021
@@ -184,23 +182,22 @@ public final class Constants {
   // INTAKE:
   //   - Deployed Position: 3.476 rotations
   //   - Retracted Position: 0 rotations
-  //   - Upper Soft Limit: 4.0 rotations (NEED TO TEST!!!!)
-  //   - Lower Soft Limit: -0.5 rotations (NEED TO TEST!!!!)
   //   - Position Tolerance: ±0.5 rotations
-  //   - Intake Voltage: 10.0V
-  //   - Outtake Voltage: -8.0V
-  //   - Lift Voltage: 1.25V
+  //   - Intake Voltage: 12.0V
+  //   - Outtake Voltage: -11.0V
+  //   - Lift Voltage: 3.0V
   //
   // DRIVETRAIN:
-  //   - Max Speed: 2.0 m/s
-  //   - Max Angular Speed: 2π rad/s
+  //   - Max Speed: 4.5 m/s
+  //   - Max Angular Speed: 1.7π rad/s
   //   - Wheel Diameter: 0.0762m (3 inches)
   //   - Track Width: 26.5 inches
   //   - Wheel Base: 26.5 inches
   //
   // VISION:
-  //   - Camera 1: "Arducam_OV9281_USB_Camera" (front)
-  //   - Camera 2: "Arducam_OV9281_USB_Camera_2" (back)
+  //   - Camera 1: "Arducam3-front-10913"
+  //   - Camera 2: "Arducam1-frontleft-10913"
+  //   - Camera 3: "Arducam2-back-10913"
   //   - Max Pitch/Roll: 3.0 degrees
   //   - Max Pose Difference: 2.0 meters
   //   - Max Ambiguity: 0.2
@@ -213,34 +210,30 @@ public final class Constants {
   //   - Right Bumper: Enable hub auto-aim
   //   - Left Bumper: Disable hub auto-aim
   //   - Start: Zero gyro heading
-  //   - R1: X-stance (brake)
+  //   - Right Stick Press: X-stance (brake)
   //
   // OPERATOR (F310 Gamepad - Port 1):
-  //   - A Button: Shoot (mode-dependent: manual preset or auto-aim)
+  //   - A Button: Shoot at the selected preset once the shooter is ready
   //   - B Button: Eject all mechanisms
   //   - X Button: Deploy intake lift
   //   - Y Button: Retract intake lift
-  //   - Left Bumper: Manual hopper feed
+  //   - Right Trigger: Run intake roller
+  //   - Left Bumper: Outtake roller
   //   - Right Bumper: Spin shooter only (no hopper)
-  //   - POV-Up: Toggle ShootOnMove ↔ AutoShoot (automatic mode only)
-  //   - POV-Right: Close preset (3000 RPM)
-  //   - POV-Down: At Distance preset (5200 RPM)
-  //   - POV-Left: Toggle MANUAL ↔ AUTOMATIC mode
+  //   - POV-Left: Close preset (3150 RPM)
+  //   - POV-Up: Medium preset (3800 RPM)
+  //   - POV-Right: Distance preset (4750 RPM)
   //
   // === TELEMETRY TOPICS (ElasticTelemetry) ===
   //
   // Shooter:
   //   - Shooter/Actual RPM
   //   - Shooter/Target RPM
-  //   - Shooter/Target RPM Setpoint
+  //   - Shooter/Commanded RPM
   //   - Shooter/Distance To Hub (m)
   //   - Shooter/Suggested RPM
   //   - Shooter/Angle Error To Hub (deg)
   //   - Shooter/ActivePreset
-  //   - Shooter/Mode (MANUAL/AUTOMATIC)
-  //   - Shooter/AutomaticMode (boolean)
-  //   - Shooter/UseShootOnMove (boolean)
-  //   - Shooter/AutoAimMode (SHOOT ON MOVE/AUTO SHOOT)
   //
   // Hopper:
   //   - Hopper/Actual RPM
@@ -271,11 +264,11 @@ public final class Constants {
   // Game Info:
   //   - Game/Phase (Disabled/Autonomous/Teleop/Test)
   //   - Game/My Team (Red/Blue/Unknown)
-  //   - Game/Active HUB (Red Speaker/Blue Speaker/Unknown)
+  //   - Game/Alliance Hub (Red Hub/Blue Hub/Unknown)
   //   - Game/Game Time (s)
   //   - Game/OurScore
   //   - Game/OpponentScore
-  //   - Game/Auto Winner
+  //   - Game/Score Leader
   //   - Game/CanScoreNow (boolean)
   //   - Game/ScoringWindow (phase description)
   //
@@ -286,11 +279,11 @@ public final class Constants {
   //   2. Verify motor controller shows up in REV Hardware Client
   //   3. Check motor inversion setting (see subsystem constants)
   //   4. Verify current limit isn't being hit (check telemetry)
-  //   5. Check if motor is in brake/coast mod2e as expected
+  //   5. Check whether the motor is in the expected brake or coast mode
   //
   // Encoder reading wrong values:
-  //   1. Check velocity conversion factor (Shooter: 0.5, Hopper: 1.0, Intake: 1.0)
-  //   2. Verify gear ratio is correct (Shooter: 2:1)
+  //   1. Check velocity conversion factor (Shooter: 0.667, Hopper: 1.0, Intake: 1.0)
+  //   2. Verify gear ratio is correct (Shooter: 3:2 motor-to-flywheel)
   //   3. Check if encoder is properly connected to motor controller
   //   4. Verify encoder type matches configuration (relative vs absolute)
   //
@@ -315,7 +308,7 @@ public final class Constants {
   //   5. Check alliance color is detected correctly
   //
   // Shooter RPM incorrect:
-  //   1. Verify gear ratio (2:1) and conversion factor (0.5)
+  //   1. Verify gear ratio (3:2 motor-to-flywheel) and conversion factor (0.667)
   //   2. Check PID gains (Kp=0.0001, Kv=0.0021)
   //   3. Monitor Shooter/Actual RPM vs Shooter/Target RPM
   //   4. Verify voltage compensation is enabled (12.0V)

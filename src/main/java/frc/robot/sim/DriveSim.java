@@ -4,6 +4,7 @@ import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.hardware.Pigeon2;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import frc.robot.subsystems.MAXSwerveModule;
 import org.ironmaple.simulation.SimulatedArena;
@@ -56,6 +57,8 @@ public class DriveSim {
   }
 
   /** Steps the simulation forward. Called once per robot periodic (20 ms). */
+  @SuppressWarnings(
+      "deprecation") // Maple exposes its simulated gyro reading through a deprecated API.
   public void update() {
     // 1. Read the desired module states from the real motor objects
     SwerveModuleState[] desiredStates = new SwerveModuleState[m_modules.length];
@@ -73,14 +76,15 @@ public class DriveSim {
     // 4. Update the self-controlled sim's internal odometry
     m_simDrive.periodic();
 
-    // TODO: Inject the resulting simulated encoder positions/velocities and
-    // gyro heading back into the WPILib sim objects so that the student
-    // code's SwerveDriveOdometry sees realistic (slipping) values.
-    // This requires using the REV SparkMax simulation API or
-    // WPILib's SimDevice hooks.
-    //
-    // For now, the sim self-tracks its own odometry. The ground truth
-    // pose is available via getActualPose() for visualization.
+    // 5. Feed the simulated sensors back into the exact motor controllers and gyro that the
+    // robot code reads. This lets robot-side odometry and path following use the simulated wheel
+    // slip/noise instead of a separate ground-truth pose.
+    SwerveModulePosition[] modulePositions = m_simDrive.getLatestModulePositions();
+    SwerveModuleState[] measuredStates = m_simDrive.getMeasuredStates();
+    for (int i = 0; i < m_modules.length; i++) {
+      m_modules[i].setSimState(modulePositions[i], measuredStates[i]);
+    }
+    m_gyro.getSimState().setRawYaw(m_simDrive.getRawGyroAngle().getDegrees());
   }
 
   /**

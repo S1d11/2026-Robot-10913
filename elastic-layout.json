@@ -18,27 +18,28 @@
             },
             "children": [
               {
-                "title": "Auto Winner",
-                "x": 0.0,
-                "y": 0.0,
-                "width": 128.0,
-                "height": 128.0,
-                "type": "ComboBox Chooser",
-                "properties": {
-                  "topic": "/SmartDashboard/Game/Auto Winner",
-                  "period": 0.06,
-                  "sort_options": false
-                }
-              },
-              {
-                "title": "Active HUB",
+                "title": "Score Leader",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Game/Active HUB",
+                  "topic": "/SmartDashboard/Game/Score Leader",
+                  "period": 0.06,
+                  "data_type": "string",
+                  "show_submit_button": false
+                }
+              },
+              {
+                "title": "Alliance Hub",
+                "x": 0.0,
+                "y": 0.0,
+                "width": 128.0,
+                "height": 128.0,
+                "type": "Text Display",
+                "properties": {
+                  "topic": "/SmartDashboard/Game/Alliance Hub",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
@@ -308,7 +309,7 @@
             ]
           },
           {
-            "title": "Arducam2-side-10913",
+            "title": "Arducam1-frontleft-10913",
             "x": 1280.0,
             "y": 0.0,
             "width": 256.0,
@@ -326,7 +327,7 @@
                 "height": 128.0,
                 "type": "Boolean Box",
                 "properties": {
-                  "topic": "/SmartDashboard/Vision/Arducam2-side-10913/CoprocMultiTag",
+                  "topic": "/SmartDashboard/Vision/Arducam1-frontleft-10913/CoprocMultiTag",
                   "period": 0.06,
                   "data_type": "boolean",
                   "true_color": 4283215696,
@@ -343,7 +344,7 @@
                 "height": 128.0,
                 "type": "Boolean Box",
                 "properties": {
-                  "topic": "/SmartDashboard/Vision/Arducam2-side-10913/HasTargets",
+                  "topic": "/SmartDashboard/Vision/Arducam1-frontleft-10913/HasTargets",
                   "period": 0.06,
                   "data_type": "boolean",
                   "true_color": 4283215696,
@@ -360,7 +361,7 @@
                 "height": 128.0,
                 "type": "Boolean Box",
                 "properties": {
-                  "topic": "/SmartDashboard/Vision/Arducam2-side-10913/LowestAmbiguity",
+                  "topic": "/SmartDashboard/Vision/Arducam1-frontleft-10913/LowestAmbiguity",
                   "period": 0.06,
                   "data_type": "boolean",
                   "true_color": 4283215696,
@@ -377,7 +378,7 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Vision/Arducam2-side-10913/ResultCount",
+                  "topic": "/SmartDashboard/Vision/Arducam1-frontleft-10913/ResultCount",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -391,7 +392,7 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Vision/Arducam2-side-10913/Status",
+                  "topic": "/SmartDashboard/Vision/Arducam1-frontleft-10913/Status",
                   "period": 0.06,
                   "data_type": "string",
                   "show_submit_button": false
@@ -405,7 +406,7 @@
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Vision/Arducam2-side-10913/TargetCount",
+                  "topic": "/SmartDashboard/Vision/Arducam1-frontleft-10913/TargetCount",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false
@@ -598,14 +599,14 @@
                 }
               },
               {
-                "title": "Target RPM Setpoint",
+                "title": "Commanded RPM",
                 "x": 0.0,
                 "y": 0.0,
                 "width": 128.0,
                 "height": 128.0,
                 "type": "Text Display",
                 "properties": {
-                  "topic": "/SmartDashboard/Shooter/Target RPM Setpoint",
+                  "topic": "/SmartDashboard/Shooter/Commanded RPM",
                   "period": 0.06,
                   "data_type": "double",
                   "show_submit_button": false

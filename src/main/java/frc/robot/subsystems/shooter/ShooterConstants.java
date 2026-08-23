@@ -20,9 +20,8 @@ import edu.wpi.first.math.interpolation.InterpolatingDoubleTreeMap;
  * measured data points - Key = distance to target (meters), Value = required shooter RPM - Tune
  * these values by testing shots at known distances and recording successful RPMs
  *
- * <p>SHOOTING MODES: 1. MANUAL: Operator sets fixed RPM via presets (speaker/amp/trap) 2.
- * AUTO-SHOOT: Vision calculates distance and looks up required RPM 3. SHOOT-ON-MOVE: Compensates
- * for robot velocity while moving
+ * <p>SHOOTING MODE: The operator selects a fixed RPM preset or an Elastic dashboard value. The
+ * distance-to-RPM map is published as a tuning aid; it does not automatically command the shooter.
  *
  * <p>TYPICAL SEQUENCE: 1. Spin up shooter to target RPM based on distance or preset 2. Wait for
  * atTargetVelocity() to return true (within tolerance) 3. Trigger operator controller rumble to
@@ -44,10 +43,8 @@ public class ShooterConstants {
   public static final double shooterKv = 0.0021; // DEBUG:SHOOTER_KV
 
   public static final double shooterRPM = 3800.0; // DEBUG:SHOOTER_DEFAULT_RPM
-  public static final double shooterRPMInverted = -2000.0; // DEBUG:SHOOTER_EJECT_RPM
 
-  // THESE PRESETS ARE NOT FULLY TESTED //NOTE SOMETHING IS CAUSING A REDUCTION IN RPM SO I
-  // INCREASED RPM
+  // Validate these presets with the finished robot before competition use.
   public static final double closePresetRPM = 3150.0; // DEBUG:SHOOTER_CLOSE_PRESET
   public static final double atMediumPresetRPM = 3800.0; // DEBUG: SHOOTER_MEDIUM_PRESET
   public static final double atDistancePresetRPM = 4750.0; // DEBUG:SHOOTER_DISTANCE_PRESET
@@ -55,7 +52,7 @@ public class ShooterConstants {
   // Tolerance: Maximum RPM error to consider the shooter "at target velocity".
   // If abs(actualRPM - targetRPM) < tolerance, the shooter is ready to launch.
   // Tighter tolerance = more consistent shots but longer spin-up wait time.
-  // 150 RPM tolerance provides good balance between accuracy and responsiveness.
+  // 75 RPM tolerance provides good balance between accuracy and responsiveness.
   public static final double shooterToleranceRPM = 75.0; // DEBUG:SHOOTER_TOLERANCE
 
   // Distance-to-RPM lookup table: Automatically interpolates between data points.

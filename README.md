@@ -1,70 +1,68 @@
+# FRC Robot Code — Team 10913 (2026)
 
+Command-based Java robot code for a swerve-drive robot with shooter, hopper, intake, AprilTag vision, PathPlanner autos, Elastic telemetry, and desktop simulation.
 
-FRC Robot Code for Team 10913 - 2026 Season
+## Robot systems
 
-## Project Structure
+- **Drive:** four MAXSwerve modules, SparkFlex drive motors, SparkMax steering motors, and a Pigeon 2 gyro.
+- **Shooter:** two SparkFlex NEO Vortex motors (CAN 13 leader, CAN 14 follower) with closed-loop flywheel speed control.
+- **Hopper:** one SparkMax feeder motor (CAN 12).
+- **Intake:** roller motor (CAN 11) and lift motor (CAN 10).
+- **Vision:** three PhotonVision cameras that fuse valid AprilTag estimates into drivetrain pose estimation.
 
-This project combines:
-- **Swerve Drive** from Working Swerve code (no AdvantageKit)
-- **Shooter Subsystem** from special program (AdvantageKit removed)
-- **Intake Subsystem** from special program (AdvantageKit removed)
+## Controller mapping
 
-## Subsystems
+### Driver — port 0
 
-### Drive Subsystem
-- MAXSwerve modules with NEO motors
-- Pigeon 2 IMU for heading
-- Field-relative and robot-relative driving modes
+- Left stick: field-relative translation
+- Right-stick X: rotation when hub tracking is disabled
+- Right stick press: X-stance
+- Right bumper: enable hub tracking
+- Left bumper: disable hub tracking
+- Start: zero gyro heading
 
-### Shooter Subsystem
-- Dual SparkMax motors (CAN IDs 12, 13)
-- Velocity control with PID
-- Preset speeds for speaker and amp scoring
+### Operator — port 1
 
-### Intake Subsystem
-- Single SparkMax motor (CAN ID 10)
-- Beam break sensor on DIO 0
-- Intake, outtake, and feed modes
+- A: launch at the selected RPM once the shooter reaches speed
+- B: eject intake, hopper, and shooter
+- Right trigger: run intake roller
+- Left bumper: outtake roller
+- X / Y: deploy / retract intake lift
+- Right bumper: spin shooter only
+- D-pad left / up / right: close / medium / distance shooter presets
 
-## Controller Mapping
+## Autonomous
 
-### Drive Controls
-- **Left Stick**: Translation (X/Y movement)
-- **Right Stick X**: Rotation
-- **Start Button**: Zero heading
-- **R1**: X-formation (lock wheels)
+PathPlanner assets live in `src/main/deploy/pathplanner`. Select an auto through the Elastic chooser. The PathPlanner named commands are:
 
-### Shooter Controls
-- **A Button**: Shoot at speaker speed (5000 RPM)
-- **B Button**: Shoot at amp speed (2500 RPM)
+- `DeployIntake`, `RetractIntake`, `StartIntake`, `StopIntake`
+- `SpinUpShooter`, `Shoot`, `StopShooter`
 
-### Intake Controls
-- **X Button**: Intake game piece
-- **Y Button**: Outtake game piece
-- **Right Bumper**: Feed to shooter
+Timed autonomous shooting uses PathPlanner deadline groups so a shot is stopped cleanly when its wait duration ends.
 
-## Building and Deploying
+## Build and deploy
+
+Use the WPILib 2026 toolchain with Java 17.
 
 ```bash
-# Build the project
-.\gradlew build
+# macOS / Linux
+chmod +x gradlew
+./gradlew build
+./gradlew deploy
+./gradlew simulateJava
 
-# Deploy to robot
-.\gradlew deploy
-
-# Simulate
-.\gradlew simulateJava
+# Windows
+gradlew.bat build
 ```
 
-## Configuration
+The team number is configured in `.wpilib/wpilib_preferences.json`.
 
-Update CAN IDs and other constants in:
-- `src/main/java/frc/robot/Constants.java` - Drive constants
-- `src/main/java/frc/robot/subsystems/shooter/ShooterConstants.java` - Shooter constants
-- `src/main/java/frc/robot/subsystems/intake/IntakeConstants.java` - Intake constants
+## Tuning locations
 
-## Team Number
+- `Constants.java`: drivetrain geometry, CAN IDs, operator ports, and field targets
+- `ShooterConstants.java`: flywheel gains, presets, and distance-to-RPM table
+- `HopperConstants.java`: feeder gains and speed
+- `IntakeConstants.java`: intake/lift voltages and lift positions
+- `VisionConstants.java`: camera names, transforms, and validation thresholds
 
-Team: **10913**
-
-Update team number in `.wpilib/wpilib_preferences.json` if needed.
+Validate all mechanism limits, camera transforms, and shot presets on the real robot before competition use.

@@ -13,15 +13,15 @@ import org.photonvision.PhotonPoseEstimator;
 public class Vision extends SubsystemBase {
   private final DriveSubsystem m_driveSubsystem;
 
-  private AprilTagFieldLayout m_fieldLayout;
+  private final AprilTagFieldLayout m_fieldLayout;
 
   private final PhotonCamera m_camera1;
   private final PhotonCamera m_camera2;
   private final PhotonCamera m_camera3;
 
-  private PhotonPoseEstimator m_estimator1;
-  private PhotonPoseEstimator m_estimator2;
-  private PhotonPoseEstimator m_estimator3;
+  private final PhotonPoseEstimator m_estimator1;
+  private final PhotonPoseEstimator m_estimator2;
+  private final PhotonPoseEstimator m_estimator3;
 
   public Vision(DriveSubsystem driveSubsystem, AprilTagFieldLayout fieldLayout) {
     this.m_driveSubsystem = driveSubsystem;
@@ -35,25 +35,45 @@ public class Vision extends SubsystemBase {
       m_estimator1 = new PhotonPoseEstimator(m_fieldLayout, VisionConstants.ROBOT_TO_CAMERA_1);
       m_estimator2 = new PhotonPoseEstimator(m_fieldLayout, VisionConstants.ROBOT_TO_CAMERA_2);
       m_estimator3 = new PhotonPoseEstimator(m_fieldLayout, VisionConstants.ROBOT_TO_CAMERA_3);
+    } else {
+      m_estimator1 = null;
+      m_estimator2 = null;
+      m_estimator3 = null;
     }
   }
 
   @Override
   public void periodic() {
-    // Process estimates
-    processEstimator(m_estimator1, m_camera1);
-    processEstimator(m_estimator2, m_camera2);
-    processEstimator(m_estimator3, m_camera3);
+    double pitch = Math.abs(m_driveSubsystem.getPitch());
+    double roll = Math.abs(m_driveSubsystem.getRoll());
+    boolean rejectForTilt =
+        !DriverStation.isDisabled()
+            && (pitch > VisionConstants.MAX_PITCH_ROLL_DEGREES
+                || roll > VisionConstants.MAX_PITCH_ROLL_DEGREES);
+    ElasticTelemetry.setBoolean("Vision/IgnoringDueToPitchRoll", rejectForTilt);
+
+    processEstimator(m_estimator1, m_camera1, pitch, roll, rejectForTilt);
+    processEstimator(m_estimator2, m_camera2, pitch, roll, rejectForTilt);
+    processEstimator(m_estimator3, m_camera3, pitch, roll, rejectForTilt);
   }
 
-  private void processEstimator(PhotonPoseEstimator estimator, PhotonCamera camera) {
+  private void processEstimator(
+      PhotonPoseEstimator estimator,
+      PhotonCamera camera,
+      double pitch,
+      double roll,
+      boolean rejectForTilt) {
     String prefix = "Vision/" + camera.getName() + "/";
+    ElasticTelemetry.setNumber(prefix + "Gyro/Pitch", pitch);
+    ElasticTelemetry.setNumber(prefix + "Gyro/Roll", roll);
 
     if (estimator == null) {
+      publishNoResultTelemetry(prefix);
       ElasticTelemetry.setString(prefix + "Status", "No estimator");
       return;
     }
     if (!camera.isConnected()) {
+      publishNoResultTelemetry(prefix);
       ElasticTelemetry.setString(prefix + "Status", "Not connected");
       return;
     }
@@ -61,30 +81,27 @@ public class Vision extends SubsystemBase {
     var results = camera.getAllUnreadResults();
     ElasticTelemetry.setNumber(prefix + "ResultCount", results.size());
     if (results.isEmpty()) {
+      publishNoResultTelemetry(prefix);
       ElasticTelemetry.setString(prefix + "Status", "No results");
       return;
     }
 
-    var pitch = Math.abs(m_driveSubsystem.getPitch());
-    var roll = Math.abs(m_driveSubsystem.getRoll());
-    ElasticTelemetry.setNumber(prefix + "Gyro/Pitch", pitch);
-    ElasticTelemetry.setNumber(prefix + "Gyro/Roll", roll);
-
     // Skip pitch/roll check when disabled so vision can establish starting pose
-    if (!DriverStation.isDisabled()
-        && (pitch > VisionConstants.MAX_PITCH_ROLL_DEGREES
-            || roll > VisionConstants.MAX_PITCH_ROLL_DEGREES)) {
-      ElasticTelemetry.setBoolean("Vision/IgnoringDueToPitchRoll", true);
-      ElasticTelemetry.setString("Vision/Status", "Rejected: pitch/roll");
+    if (rejectForTilt) {
+      ElasticTelemetry.setBoolean(prefix + "HasTargets", false);
+      ElasticTelemetry.setNumber(prefix + "TargetCount", 0);
+      ElasticTelemetry.setBoolean(prefix + "CoprocMultiTag", false);
+      ElasticTelemetry.setBoolean(prefix + "LowestAmbiguity", false);
+      ElasticTelemetry.setString(prefix + "Status", "Rejected: pitch/roll");
       return;
     }
-    ElasticTelemetry.setBoolean("Vision/IgnoringDueToPitchRoll", false);
 
     for (var result : results) {
       ElasticTelemetry.setNumber(
           prefix + "LatencyMs", (Timer.getFPGATimestamp() - result.getTimestampSeconds()) * 1000.0);
       ElasticTelemetry.setBoolean(prefix + "HasTargets", result.hasTargets());
       ElasticTelemetry.setNumber(prefix + "TargetCount", result.getTargets().size());
+      ElasticTelemetry.setBoolean(prefix + "LowestAmbiguity", false);
 
       // Try coprocessor multi-tag first (real robot), fall back to lowest ambiguity (sim/single
       // tag)
@@ -131,6 +148,14 @@ public class Vision extends SubsystemBase {
         ElasticTelemetry.setString(prefix + "Status", "No pose estimate");
       }
     }
+  }
+
+  private void publishNoResultTelemetry(String prefix) {
+    ElasticTelemetry.setNumber(prefix + "ResultCount", 0);
+    ElasticTelemetry.setBoolean(prefix + "HasTargets", false);
+    ElasticTelemetry.setNumber(prefix + "TargetCount", 0);
+    ElasticTelemetry.setBoolean(prefix + "CoprocMultiTag", false);
+    ElasticTelemetry.setBoolean(prefix + "LowestAmbiguity", false);
   }
 
   /**

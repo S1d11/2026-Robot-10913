@@ -3,6 +3,7 @@ package frc.robot.subsystems.vision;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.util.Units;
+import frc.robot.Constants.FieldConstants;
 
 /**
  * VISION SUBSYSTEM OPERATION:
@@ -65,8 +66,8 @@ public final class VisionConstants {
   public static final double MAX_PITCH_ROLL_DEGREES = 3.0; // DEBUG:VISION_MAX_TILT
 
   // Field dimensions and safeguards (meters)
-  public static final double FIELD_LENGTH_METERS = 16.54; // DEBUG:FIELD_LENGTH
-  public static final double FIELD_WIDTH_METERS = 9.14; // DEBUG:FIELD_WIDTH
+  public static final double FIELD_LENGTH_METERS = FieldConstants.kFieldLength;
+  public static final double FIELD_WIDTH_METERS = FieldConstants.kFieldWidth;
 
   public static final double MAX_POSE_DIFFERENCE_METERS = 2.0; // DEBUG:VISION_MAX_POSE_DIFF
 

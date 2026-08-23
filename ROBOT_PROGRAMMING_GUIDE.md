@@ -16,7 +16,7 @@
 
 ## Introduction
 
-This guide explains how to program the 2026 FRC robot for Team 10913. The robot uses the **Command-Based Programming** paradigm with WPILib and is written in Java.
+This guide explains how to program the 2026 FRC robot for Team 10913. The robot uses the **Command-Based Programming** paradigm with WPILib and is written in Java. Use the WPILib 2026 Java 17 toolchain for builds.
 
 ### Robot Capabilities
 - **Swerve Drive**: Holonomic movement with MAXSwerve modules
@@ -41,20 +41,21 @@ This guide explains how to program the 2026 FRC robot for Team 10913. The robot 
 3. Clone this repository:
    ```bash
    git clone <repository-url>
-   cd 2026-Robot-10913-15
+   cd 2026-Robot-10913
    ```
 4. Open project in WPILib VS Code
 
 ### Building the Project
 ```bash
-# Build code
-.\gradlew build
+# Build code (macOS/Linux)
+chmod +x gradlew
+./gradlew build
 
 # Deploy to robot (must be connected)
-.\gradlew deploy
+./gradlew deploy
 
 # Run simulator
-.\gradlew simulateJava
+./gradlew simulateJava
 ```
 
 ---
@@ -183,13 +184,13 @@ public class CustomCommand extends Command {
 - `eject()`: Reverse to clear jams
 
 **Hardware**:
-- 2x SparkMax NEO motors (CAN IDs 13, 14)
+- 2x SparkFlex NEO Vortex motors (CAN IDs 13, 14)
 - Closed-loop velocity control with PID + feedforward
 
 **Constants** (`ShooterConstants.java`):
 ```java
-public static final double shooterRPM = 5000.0;      // Default speed
-public static final double closePresetRPM = 3500.0;  // Close shot
+public static final double shooterRPM = 3800.0;      // Default speed
+public static final double closePresetRPM = 3150.0;  // Close shot
 public static final double shooterKp = 0.0001;       // PID P gain
 public static final double shooterKv = 0.0021;       // Feedforward
 ```
@@ -210,8 +211,7 @@ public static final double shooterKv = 0.0021;       // Feedforward
 - Velocity control with PID
 
 **Operation Modes**:
-- **Idle**: 1500 RPM (hold game piece)
-- **Feed**: 5000 RPM (launch into shooter)
+- **Feed**: 5000 RPM (launch into shooter once the shooter is ready)
 - **Eject**: -6V (reverse)
 
 ### Intake Subsystem
@@ -260,11 +260,6 @@ public class IntakeCommand extends Command {
     }
     
     @Override
-    public void initialize() {
-        // Deploy intake when command starts
-        m_intake.liftDeploy();
-    }
-    
     @Override
     public void execute() {
         // Run intake roller
@@ -298,7 +293,7 @@ private void configureButtonBindings() {
 ```java
 Commands.sequence(
     new DeployIntake(m_intake),
-    new IntakeCommand(m_intake),
+    Commands.deadline(new WaitCommand(2.0), new IntakeCommand(m_intake)),
     new RetractIntake(m_intake)
 )
 ```
@@ -338,14 +333,14 @@ Commands.either(
 |--------|--------|
 | A | Launch (shooter + hopper) |
 | B | Eject all mechanisms |
+| Right Trigger | Run intake roller |
 | X | Deploy intake |
 | Y | Retract intake |
 | Left Bumper | Outtake |
 | Right Bumper | Spin up shooter only |
-| POV Up | Toggle shoot-on-move |
-| POV Left | Toggle auto/manual mode |
-| POV Right | Close shot preset |
-| POV Down | Distance shot preset |
+| POV Left | Close shot preset |
+| POV Up | Medium shot preset |
+| POV Right | Distance shot preset |
 
 ### Adding New Bindings
 
@@ -379,12 +374,15 @@ private void configureButtonBindings() {
 private void configurePathPlannerCommands() {
     NamedCommands.registerCommand("SpinUpShooter", new SpinUpShooter(m_shooter));
     NamedCommands.registerCommand("Shoot", new ShootCommand(m_shooter, m_hopper));
-    NamedCommands.registerCommand("Intake", new IntakeCommand(m_intake));
+    NamedCommands.registerCommand("StartIntake", new StartIntake(m_intake));
+    NamedCommands.registerCommand("StopIntake", new StopIntake(m_intake));
 }
 ```
 
 3. **Add event markers** in PathPlanner at desired positions
 4. **Select auto** from dashboard chooser
+
+Use a PathPlanner **deadline** group when a continuous command such as `ShootCommand` must run for a fixed duration. Put the `wait` command first (the deadline) and the continuous command second so the command is interrupted and cleaned up when the timer expires.
 
 ### Auto Builder Configuration
 The robot uses `AutoBuilder` for PathPlanner integration:
@@ -408,7 +406,7 @@ public Command getCustomAuto() {
         new InstantCommand(() -> m_robotDrive.resetOdometry(startPose)),
         new DeployIntake(m_intake),
         AutoBuilder.followPath(PathPlannerPath.fromPathFile("MyPath")),
-        new ShootCommand(m_shooter, m_hopper)
+        new ShootCommand(m_shooter, m_hopper).withTimeout(2.0)
     );
 }
 ```
@@ -422,17 +420,18 @@ Use `ElasticTelemetry` for dashboard logging:
 ```java
 // In subsystem periodic()
 ElasticTelemetry.setNumber("Shooter/Actual RPM", encoder.getVelocity());
-ElasticTelemetry.setBoolean("Intake/IsDeployed", isLiftDeployed());
+ElasticTelemetry.setBoolean("Intake/Is Deployed", isLiftDeployed());
 ElasticTelemetry.setString("Auto/CurrentPath", pathName);
 ```
 
 ### Simulation
 ```bash
-.\gradlew simulateJava
+./gradlew simulateJava
 ```
 - Test code without robot hardware
 - Verify logic and command sequences
 - Use Glass for visualization
+- Simulation now injects maple-sim wheel and gyro readings into the same sensor objects used by robot code
 
 ### Common Debugging Steps
 1. **Check CAN IDs**: Verify in Phoenix Tuner or REV Hardware Client

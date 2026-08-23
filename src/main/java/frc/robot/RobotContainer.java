@@ -30,6 +30,7 @@ import frc.robot.Constants.OIConstants;
 import frc.robot.commands.intake.DeployIntake;
 import frc.robot.commands.intake.IntakeCommand;
 import frc.robot.commands.intake.RetractIntake;
+import frc.robot.commands.intake.StartIntake;
 import frc.robot.commands.intake.StopIntake;
 import frc.robot.commands.shooter.ShootCommand;
 import frc.robot.commands.shooter.SpinUpShooter;
@@ -61,10 +62,12 @@ public class RobotContainer {
   private final SendableChooser<Command> m_autoChooser;
 
   // The driver's controller
-  XboxController m_driverController = new XboxController(OIConstants.kDriverControllerPort);
+  private final XboxController m_driverController =
+      new XboxController(OIConstants.kDriverControllerPort);
 
   // The operator's controller (F310 gamepad)
-  XboxController m_operatorController = new XboxController(OIConstants.kOperatorControllerPort);
+  private final XboxController m_operatorController =
+      new XboxController(OIConstants.kOperatorControllerPort);
 
   /** The container for the robot. Contains subsystems, OI devices, and commands. */
   public RobotContainer() {
@@ -134,11 +137,9 @@ public class RobotContainer {
 
     // Intake commands
     NamedCommands.registerCommand("DeployIntake", new DeployIntake(m_intake));
-    NamedCommands.registerCommand("Intake", new IntakeCommand(m_intake));
+    NamedCommands.registerCommand("StartIntake", new StartIntake(m_intake));
     NamedCommands.registerCommand("RetractIntake", new RetractIntake(m_intake));
     NamedCommands.registerCommand("StopIntake", new StopIntake(m_intake));
-    NamedCommands.registerCommand(
-        "hopperRollers", new RunCommand(() -> m_hopper.setVoltage(6.00), m_hopper));
   }
 
   public AprilTagFieldLayout getFieldLayout() {
@@ -185,20 +186,16 @@ public class RobotContainer {
 
     // Launch button (A / Space) - runs shooter and hopper forward to score
     var launchCommand =
-        new RunCommand(
+        Commands.runEnd(
             () -> {
               m_shooter.setVelocity(
                   ElasticTelemetry.getNumber("Shooter/Target RPM", ShooterConstants.shooterRPM));
-              if (true) {
+              if (m_shooter.atTargetVelocity()) {
                 m_hopper.setVelocity(HopperConstants.hopperFeedRPM);
               } else {
                 m_hopper.stop();
               }
             },
-            m_shooter,
-            m_hopper);
-    var stopLaunchCommand =
-        new InstantCommand(
             () -> {
               m_shooter.stop();
               m_hopper.stop();
@@ -208,17 +205,12 @@ public class RobotContainer {
 
     // Eject button (B / E key) - runs intake, hopper, and shooter backwards
     var ejectCommand =
-        new RunCommand(
+        Commands.runEnd(
             () -> {
-              m_intake.intake();
+              m_intake.outtake();
               m_hopper.eject();
               m_shooter.eject();
             },
-            m_intake,
-            m_hopper,
-            m_shooter);
-    var stopEjectCommand =
-        new InstantCommand(
             () -> {
               m_intake.stop();
               m_hopper.stop();
@@ -229,37 +221,34 @@ public class RobotContainer {
             m_shooter);
 
     new JoystickButton(m_operatorController, XboxController.Button.kB.value)
-        .whileTrue(ejectCommand)
-        .onFalse(stopEjectCommand);
+        .whileTrue(ejectCommand);
 
     // Intake controls
-    var outtakeCommand = new RunCommand(() -> m_intake.outtake(), m_intake);
-    var stopIntakeCommand = new InstantCommand(() -> m_intake.stop(), m_intake);
+    var outtakeCommand = Commands.runEnd(m_intake::outtake, m_intake::stop, m_intake);
     new JoystickButton(m_operatorController, XboxController.Button.kLeftBumper.value)
-        .whileTrue(outtakeCommand)
-        .onFalse(stopIntakeCommand);
+        .whileTrue(outtakeCommand);
 
-    var deployCommand = new RunCommand(() -> m_intake.liftDeploy(), m_intake);
+    var deployCommand = Commands.runEnd(m_intake::liftDeploy, m_intake::liftStop, m_intake);
     new JoystickButton(m_operatorController, XboxController.Button.kX.value)
-        .whileTrue(deployCommand)
-        .onFalse(stopIntakeCommand);
+        .whileTrue(deployCommand);
 
-    var retractCommand = new RunCommand(() -> m_intake.liftRetract(), m_intake);
+    var retractCommand = Commands.runEnd(m_intake::liftRetract, m_intake::liftStop, m_intake);
     new JoystickButton(m_operatorController, XboxController.Button.kY.value)
-        .whileTrue(retractCommand)
-        .onFalse(stopIntakeCommand);
+        .whileTrue(retractCommand);
+
+    new Trigger(() -> m_operatorController.getRightTriggerAxis() > 0.5)
+        .whileTrue(new IntakeCommand(m_intake));
 
     // Shooter only (right bumper / R key)
     var shooterOnlyCommand =
-        new RunCommand(
+        Commands.runEnd(
             () ->
                 m_shooter.setVelocity(
                     ElasticTelemetry.getNumber("Shooter/Target RPM", ShooterConstants.shooterRPM)),
+            m_shooter::stop,
             m_shooter);
-    var stopShooterCommand = new InstantCommand(() -> m_shooter.stop(), m_shooter);
     new JoystickButton(m_operatorController, XboxController.Button.kRightBumper.value)
-        .whileTrue(shooterOnlyCommand)
-        .onFalse(stopShooterCommand);
+        .whileTrue(shooterOnlyCommand);
 
     new POVButton(m_operatorController, 270)
         .onTrue(
@@ -276,8 +265,7 @@ public class RobotContainer {
                 () -> setShooterPreset("At Distance", ShooterConstants.atDistancePresetRPM)));
 
     new JoystickButton(m_operatorController, XboxController.Button.kA.value)
-        .whileTrue(launchCommand)
-        .onFalse(stopLaunchCommand);
+        .whileTrue(launchCommand);
 
     new Trigger(m_shooter::atTargetVelocity)
         .onTrue(
@@ -306,7 +294,7 @@ public class RobotContainer {
     try {
       config = RobotConfig.fromGUISettings();
     } catch (Exception e) {
-      e.printStackTrace();
+      DriverStation.reportError("Unable to configure PathPlanner AutoBuilder.", e.getStackTrace());
       return;
     }
 

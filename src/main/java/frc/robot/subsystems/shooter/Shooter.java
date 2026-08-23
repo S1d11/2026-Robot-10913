@@ -40,8 +40,8 @@ public class Shooter extends SubsystemBase {
         .idleMode(IdleMode.kCoast)
         .smartCurrentLimit(shooterCurrentLimit)
         .voltageCompensation(12.0);
-    // Gear ratio: 3:2 (motor shaft @ 4000 RPM → flywheel @ 2000 RPM)
-    // Conversion factor = flywheel RPM / motor RPM = 2000 / 4000 = 0.5
+    // Gear ratio: 3:2 motor-to-flywheel reduction.
+    // Conversion factor = flywheel RPM / motor RPM = 2 / 3.
     motorOneConfig.encoder.velocityConversionFactor(0.667);
     motorOneConfig.closedLoop.pid(shooterKp, shooterKi, shooterKd);
     motorOneConfig.closedLoop.feedForward.kV(shooterKv);
@@ -67,13 +67,14 @@ public class Shooter extends SubsystemBase {
         com.revrobotics.ResetMode.kResetSafeParameters,
         com.revrobotics.PersistMode.kPersistParameters);
 
-    // Publishs the default target RPM so it can be edited from Elastic
+    // Publish the default target RPM so it can be edited from Elastic.
     ElasticTelemetry.setNumber("Shooter/Target RPM", shooterRPM);
   }
 
   @Override
   public void periodic() {
     ElasticTelemetry.setNumber("Shooter/Actual RPM", shooterMotorOneEncoder.getVelocity());
+    ElasticTelemetry.setNumber("Shooter/Commanded RPM", targetRPM);
 
     if (distanceSupplier != null) {
       double distanceMeters = distanceSupplier.getAsDouble();
@@ -105,14 +106,17 @@ public class Shooter extends SubsystemBase {
   }
 
   public void setVoltage(double volts) {
+    targetRPM = 0.0;
     shooterMotorOne.setVoltage(volts);
   }
 
   public void stop() {
+    targetRPM = 0.0;
     shooterMotorOne.stopMotor();
   }
 
   public void eject() {
+    targetRPM = 0.0;
     shooterMotorOne.setVoltage(-6.0);
   }
 
@@ -130,9 +134,7 @@ public class Shooter extends SubsystemBase {
    * @param distance Distance to the hub (in meters)
    * @return The interpolated target RPM based on measured values
    */
-  double lastKnownRPM = 0.0;
-
   public double getRPMForDistance(double distance) {
-    return targetRPM = distanceToRpmMap.get(distance);
+    return distanceToRpmMap.get(distance);
   }
 }

@@ -11,7 +11,7 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "deadline",
           "data": {
             "commands": [
               {
@@ -30,7 +30,7 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "deadline",
           "data": {
             "commands": [
               {
@@ -69,7 +69,7 @@
         {
           "type": "named",
           "data": {
-            "name": "Intake"
+            "name": "StartIntake"
           }
         },
         {
@@ -82,6 +82,12 @@
           "type": "path",
           "data": {
             "pathName": "BackToAlliance"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "StopIntake"
           }
         }
       ]

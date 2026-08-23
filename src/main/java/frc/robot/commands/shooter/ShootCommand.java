@@ -27,11 +27,16 @@ public class ShootCommand extends Command {
   @Override
   public void initialize() {
     shooter.setVelocity(shooterRPM);
-    hopper.setVelocity(hopperRPM);
   }
 
   @Override
-  public void execute() {}
+  public void execute() {
+    if (shooter.atTargetVelocity()) {
+      hopper.setVelocity(hopperRPM);
+    } else {
+      hopper.stop();
+    }
+  }
 
   @Override
   public void end(boolean interrupted) {

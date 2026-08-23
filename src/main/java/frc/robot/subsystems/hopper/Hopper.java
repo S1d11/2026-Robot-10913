@@ -53,6 +53,7 @@ public class Hopper extends SubsystemBase {
   }
 
   public void setVoltage(double volts) {
+    targetVelocityRPM = 0.0;
     hopperMotor.setVoltage(volts);
   }
 
@@ -62,6 +63,7 @@ public class Hopper extends SubsystemBase {
   }
 
   public void eject() {
+    targetVelocityRPM = 0.0;
     hopperMotor.setVoltage(-6.0);
   }
 

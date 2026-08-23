@@ -8,6 +8,7 @@ import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.telemetry.ElasticTelemetry;
 
 public class Intake extends SubsystemBase {
 
@@ -45,8 +46,6 @@ public class Intake extends SubsystemBase {
 
     liftConfig
         .inverted(intakeLiftMotorInverted)
-        // idleMode(IdleMode.kBrake)
-        // dleMode(IdleMode.kCoast)
         .smartCurrentLimit(intakeCurrentLimit)
         .voltageCompensation(12.0);
 
@@ -62,7 +61,12 @@ public class Intake extends SubsystemBase {
   }
 
   @Override
-  public void periodic() {}
+  public void periodic() {
+    ElasticTelemetry.setNumber("Intake/Roller RPM", encoder.getVelocity());
+    ElasticTelemetry.setNumber("Intake/Lift Position", liftEncoder.getPosition());
+    ElasticTelemetry.setBoolean("Intake/Is Deployed", isLiftDeployed());
+    ElasticTelemetry.setBoolean("Intake/Is Retracted", isLiftRetracted());
+  }
 
   public void intake() {
 
@@ -71,7 +75,7 @@ public class Intake extends SubsystemBase {
 
   public void liftRetract() {
 
-    if (getLiftPosition() > retractedPosition - liftPositionTolerance) {
+    if (getLiftPosition() > retractedPosition + liftPositionTolerance) {
 
       liftMotor.setVoltage(-liftVoltage);
 
@@ -83,7 +87,7 @@ public class Intake extends SubsystemBase {
 
   public void liftDeploy() {
 
-    if (getLiftPosition() < deployedPosition + liftPositionTolerance) {
+    if (getLiftPosition() < deployedPosition - liftPositionTolerance) {
 
       liftMotor.setVoltage(liftVoltage);
 
@@ -104,8 +108,8 @@ public class Intake extends SubsystemBase {
   }
 
   public void stop() {
-
     motor.stopMotor();
+    liftStop();
   }
 
   public void liftStop() {

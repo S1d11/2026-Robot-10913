@@ -32,7 +32,7 @@
         {
           "type": "named",
           "data": {
-            "name": "Intake"
+            "name": "StartIntake"
           }
         },
         {
@@ -48,7 +48,7 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "deadline",
           "data": {
             "commands": [
               {
@@ -67,7 +67,7 @@
           }
         },
         {
-          "type": "parallel",
+          "type": "deadline",
           "data": {
             "commands": [
               {
