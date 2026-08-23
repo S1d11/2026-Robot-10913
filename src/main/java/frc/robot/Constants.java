@@ -25,6 +25,13 @@ public final class Constants {
         4.5; // DEBUG:DRIVE_MAX_SPEED - Maximum drive speed (m/s)
     public static final double kMaxAngularSpeed =
         1.7 * Math.PI; // DEBUG:DRIVE_MAX_ANGULAR_SPEED - Maximum rotation speed (rad/s)
+    public static final double kRobotMassKilograms = 54.0;
+    public static final double kBumperLengthMeters = 0.813;
+    public static final double kBumperWidthMeters = 0.813;
+    public static final double kRobotMomentOfInertiaKgMetersSquared =
+        kRobotMassKilograms
+            * (kBumperLengthMeters * kBumperLengthMeters + kBumperWidthMeters * kBumperWidthMeters)
+            / 12.0;
 
     // Chassis configuration
     public static final double kTrackWidth =
@@ -40,7 +47,8 @@ public final class Constants {
             new Translation2d(-kWheelBase / 2, kTrackWidth / 2),
             new Translation2d(-kWheelBase / 2, -kTrackWidth / 2));
 
-    // Angular offsets of the modules relative to the chassis in radians
+    // Default angular offsets of the modules relative to the chassis in radians. Values saved by
+    // the disabled-only calibration control take precedence and persist on the roboRIO.
     public static final double kFrontLeftChassisAngularOffset = 0;
     public static final double kFrontRightChassisAngularOffset = 0;
     public static final double kBackLeftChassisAngularOffset = 0;
@@ -67,13 +75,16 @@ public final class Constants {
   }
 
   public static final class FieldConstants {
-    public static final double kFieldLength = 16.54; // DEBUG:FIELD_LENGTH - Field length (meters)
-    public static final double kFieldWidth = 8.07; // DEBUG:FIELD_WIDTH - Field width (meters)
+    public static final double kFieldLength = 16.541; // DEBUG:FIELD_LENGTH - Field length (meters)
+    public static final double kFieldWidth = 8.069; // DEBUG:FIELD_WIDTH - Field width (meters)
+    public static final double kHubDistanceFromAllianceWall = 4.63;
     public static final Translation2d kBlueHub =
-        new Translation2d(4.63, kFieldWidth / 2.0); // DEBUG:BLUE_HUB_POSITION - Blue  position
+        new Translation2d(
+            kHubDistanceFromAllianceWall, kFieldWidth / 2.0); // DEBUG:BLUE_HUB_POSITION
     public static final Translation2d kRedHub =
         new Translation2d(
-            kFieldLength - 4.55, kFieldWidth / 2.0); // DEBUG:RED_HUB_POSITION - Red  position
+            kFieldLength - kHubDistanceFromAllianceWall,
+            kFieldWidth / 2.0); // DEBUG:RED_HUB_POSITION
   }
 
   // Remember To Edit when changing gear ratio
@@ -105,7 +116,7 @@ public final class Constants {
     public static final int kKeyboardPort =
         2; // DEBUG:KEYBOARD_PORT - Keyboard USB port (not currently used)
     public static final double kDriveDeadband =
-        0.5; // DEBUG:DRIVE_DEADBAND - Joystick deadband (0.0-1.0)
+        0.10; // DEBUG:DRIVE_DEADBAND - Joystick deadband (0.0-1.0)
   }
 
   public static final class AutoConstants {

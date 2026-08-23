@@ -7,6 +7,8 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.telemetry.ElasticTelemetry;
 
@@ -21,6 +23,9 @@ public class Intake extends SubsystemBase {
   // lift motor and encoder
 
   private final RelativeEncoder liftEncoder;
+
+  private boolean liftCalibrated = RobotBase.isSimulation();
+  private boolean hasReportedUncalibratedLift = false;
 
   public Intake() {
 
@@ -58,6 +63,10 @@ public class Intake extends SubsystemBase {
         liftConfig,
         com.revrobotics.ResetMode.kResetSafeParameters,
         com.revrobotics.PersistMode.kPersistParameters);
+
+    if (liftCalibrated) {
+      liftEncoder.setPosition(retractedPosition);
+    }
   }
 
   @Override
@@ -66,6 +75,7 @@ public class Intake extends SubsystemBase {
     ElasticTelemetry.setNumber("Intake/Lift Position", liftEncoder.getPosition());
     ElasticTelemetry.setBoolean("Intake/Is Deployed", isLiftDeployed());
     ElasticTelemetry.setBoolean("Intake/Is Retracted", isLiftRetracted());
+    ElasticTelemetry.setBoolean("Intake/Lift Calibrated", liftCalibrated);
   }
 
   public void intake() {
@@ -74,6 +84,9 @@ public class Intake extends SubsystemBase {
   }
 
   public void liftRetract() {
+    if (!canMoveLift()) {
+      return;
+    }
 
     if (getLiftPosition() > retractedPosition + liftPositionTolerance) {
 
@@ -86,6 +99,9 @@ public class Intake extends SubsystemBase {
   }
 
   public void liftDeploy() {
+    if (!canMoveLift()) {
+      return;
+    }
 
     if (getLiftPosition() < deployedPosition - liftPositionTolerance) {
 
@@ -129,11 +145,44 @@ public class Intake extends SubsystemBase {
 
   public boolean isLiftDeployed() {
 
-    return Math.abs(getLiftPosition() - deployedPosition) < liftPositionTolerance;
+    return liftCalibrated && Math.abs(getLiftPosition() - deployedPosition) < liftPositionTolerance;
   }
 
   public boolean isLiftRetracted() {
 
-    return Math.abs(getLiftPosition() - retractedPosition) < liftPositionTolerance;
+    return liftCalibrated
+        && Math.abs(getLiftPosition() - retractedPosition) < liftPositionTolerance;
+  }
+
+  /** Zero the relative lift encoder only while disabled and physically retracted. */
+  public void zeroLiftAtRetractedPosition() {
+    if (!DriverStation.isDisabled()) {
+      DriverStation.reportWarning("Intake lift calibration is only allowed while disabled.", false);
+      return;
+    }
+
+    liftStop();
+    liftEncoder.setPosition(retractedPosition);
+    liftCalibrated = true;
+    hasReportedUncalibratedLift = false;
+  }
+
+  public boolean isLiftCalibrated() {
+    return liftCalibrated;
+  }
+
+  private boolean canMoveLift() {
+    if (liftCalibrated) {
+      return true;
+    }
+
+    liftStop();
+    if (!hasReportedUncalibratedLift) {
+      DriverStation.reportWarning(
+          "Intake lift is not calibrated. Physically retract it, then press operator Back before enabling.",
+          false);
+      hasReportedUncalibratedLift = true;
+    }
+    return false;
   }
 }

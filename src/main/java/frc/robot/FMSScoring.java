@@ -1,84 +1,124 @@
 package frc.robot;
 
-import edu.wpi.first.networktables.NetworkTable;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.telemetry.ElasticTelemetry;
+import java.util.Optional;
 
+/** Publishes 2026 REBUILT hub availability from Driver Station game data. */
 public class FMSScoring {
-  private final NetworkTable fmsTable;
-  private boolean isFMSConnected = false;
-
-  public FMSScoring() {
-    fmsTable = NetworkTableInstance.getDefault().getTable("FMSInfo");
-  }
+  private boolean isFMSConnected;
+  private boolean hubActive;
 
   public void periodic() {
     isFMSConnected = DriverStation.isFMSAttached();
-    updateScoringWindow();
 
-    if (!isFMSConnected) {
-      ElasticTelemetry.setString("Game/Score Leader", "N/A - No FMS");
-      return;
-    }
+    Optional<DriverStation.Alliance> alliance = DriverStation.getAlliance();
+    boolean autonomousEnabled = DriverStation.isAutonomousEnabled();
+    boolean teleopEnabled = DriverStation.isTeleopEnabled();
+    double matchTime = DriverStation.getMatchTime();
+    String gameData = DriverStation.getGameSpecificMessage();
 
-    updateScores();
+    hubActive = isHubActive(alliance, autonomousEnabled, teleopEnabled, matchTime, gameData);
+
+    ElasticTelemetry.setBoolean("Game/FMS Attached", isFMSConnected);
+    ElasticTelemetry.setString("Game/Game Data", gameData.isEmpty() ? "Awaiting data" : gameData);
+    ElasticTelemetry.setBoolean("Game/Hub Active", hubActive);
+    ElasticTelemetry.setBoolean("Game/CanScoreNow", hubActive);
+    ElasticTelemetry.setString(
+        "Game/ScoringWindow",
+        getHubStatus(alliance, autonomousEnabled, teleopEnabled, matchTime, gameData, hubActive));
+    ElasticTelemetry.setString("Game/Score Leader", "Unavailable - no live score feed");
   }
 
-  private void updateScores() {
-    var alliance = DriverStation.getAlliance();
+  static boolean isHubActive(
+      Optional<DriverStation.Alliance> alliance,
+      boolean autonomousEnabled,
+      boolean teleopEnabled,
+      double matchTime,
+      String gameData) {
     if (alliance.isEmpty()) {
-      ElasticTelemetry.setString("Game/Score Leader", "Unavailable - No Alliance");
-      return;
+      return false;
+    }
+    if (autonomousEnabled) {
+      return true;
+    }
+    if (!teleopEnabled) {
+      return false;
     }
 
-    boolean isRed = alliance.get() == DriverStation.Alliance.Red;
-
-    var ourScoreEntry = fmsTable.getEntry(isRed ? "RedScore" : "BlueScore");
-    var opponentScoreEntry = fmsTable.getEntry(isRed ? "BlueScore" : "RedScore");
-    if (!ourScoreEntry.exists() || !opponentScoreEntry.exists()) {
-      ElasticTelemetry.setString("Game/Score Leader", "Unavailable - Score Data Missing");
-      return;
+    char inactiveFirst = gameDataCharacter(gameData);
+    // Game data is intentionally sent after autonomous. Before then, assume active so a missing
+    // Driver Station packet cannot incorrectly block the dashboard state.
+    if (inactiveFirst == '\0' || matchTime < 0.0) {
+      return true;
     }
 
-    int ourScore = (int) ourScoreEntry.getDouble(0);
-    int opponentScore = (int) opponentScoreEntry.getDouble(0);
+    boolean redInactiveFirst = inactiveFirst == 'R';
+    boolean shiftOneActive =
+        alliance.get() == DriverStation.Alliance.Red ? !redInactiveFirst : redInactiveFirst;
 
-    ElasticTelemetry.setNumber("Game/OurScore", ourScore);
-    ElasticTelemetry.setNumber("Game/OpponentScore", opponentScore);
-
-    String scoreLeader;
-    if (ourScore > opponentScore) {
-      scoreLeader = "Us (" + ourScore + " pts)";
-    } else if (opponentScore > ourScore) {
-      scoreLeader = "Opponent (" + opponentScore + " pts)";
-    } else if (ourScore == 0 && opponentScore == 0) {
-      scoreLeader = "N/A";
-    } else {
-      scoreLeader = "Tie (" + ourScore + " pts)";
+    if (matchTime > 130.0) {
+      return true;
+    } else if (matchTime > 105.0) {
+      return shiftOneActive;
+    } else if (matchTime > 80.0) {
+      return !shiftOneActive;
+    } else if (matchTime > 55.0) {
+      return shiftOneActive;
+    } else if (matchTime > 30.0) {
+      return !shiftOneActive;
     }
-
-    ElasticTelemetry.setString("Game/Score Leader", scoreLeader);
+    return true;
   }
 
-  private void updateScoringWindow() {
-    boolean canScore = isFMSConnected && (DriverStation.isAutonomous() || DriverStation.isTeleop());
-    String reason;
-
-    if (!isFMSConnected) {
-      reason = "No FMS Attached";
-    } else if (DriverStation.isDisabled()) {
-      reason = "Robot Disabled";
-    } else if (DriverStation.isAutonomous()) {
-      reason = "Autonomous Enabled";
-    } else if (DriverStation.isTeleop()) {
-      reason = "Teleoperated Enabled";
-    } else {
-      reason = "Not a Scoring Period";
+  private static String getHubStatus(
+      Optional<DriverStation.Alliance> alliance,
+      boolean autonomousEnabled,
+      boolean teleopEnabled,
+      double matchTime,
+      String gameData,
+      boolean active) {
+    if (alliance.isEmpty()) {
+      return "No Alliance";
+    }
+    if (autonomousEnabled) {
+      return "Autonomous - Hub Active";
+    }
+    if (!teleopEnabled) {
+      return "Robot Disabled";
+    }
+    if (gameDataCharacter(gameData) == '\0') {
+      return "Teleop - Hub assumed active while awaiting game data";
+    }
+    if (matchTime < 0.0) {
+      return "Teleop - Hub assumed active because match time is unavailable";
     }
 
-    ElasticTelemetry.setBoolean("Game/CanScoreNow", canScore);
-    ElasticTelemetry.setString("Game/ScoringWindow", reason);
+    return getShiftName(matchTime) + (active ? " - Hub Active" : " - Hub Inactive");
+  }
+
+  private static String getShiftName(double matchTime) {
+    if (matchTime > 130.0) {
+      return "Transition";
+    } else if (matchTime > 105.0) {
+      return "Shift 1";
+    } else if (matchTime > 80.0) {
+      return "Shift 2";
+    } else if (matchTime > 55.0) {
+      return "Shift 3";
+    } else if (matchTime > 30.0) {
+      return "Shift 4";
+    }
+    return "Endgame";
+  }
+
+  private static char gameDataCharacter(String gameData) {
+    if (gameData == null || gameData.isEmpty()) {
+      return '\0';
+    }
+
+    char value = Character.toUpperCase(gameData.charAt(0));
+    return value == 'R' || value == 'B' ? value : '\0';
   }
 
   public boolean isFMSConnected() {
@@ -86,6 +126,6 @@ public class FMSScoring {
   }
 
   public boolean canScoreNow() {
-    return isFMSConnected && (DriverStation.isAutonomous() || DriverStation.isTeleop());
+    return hubActive;
   }
 }

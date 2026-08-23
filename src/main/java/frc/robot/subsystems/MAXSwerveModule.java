@@ -20,6 +20,7 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.wpilibj.Preferences;
 import edu.wpi.first.wpilibj.RobotBase;
 import frc.robot.Configs;
 
@@ -36,6 +37,7 @@ public class MAXSwerveModule {
   private final SparkFlexSim m_drivingSim;
   private final SparkMaxSim m_turningSim;
 
+  private final String m_offsetPreferenceKey;
   private double m_chassisAngularOffset = 0;
   private SwerveModuleState m_desiredState = new SwerveModuleState(0.0, new Rotation2d());
 
@@ -44,7 +46,8 @@ public class MAXSwerveModule {
    * controller. This configuration is specific to the REV MAXSwerve Module built with NEOs, SPARKS
    * MAX, and a Through Bore Encoder.
    */
-  public MAXSwerveModule(int drivingCANId, int turningCANId, double chassisAngularOffset) {
+  public MAXSwerveModule(
+      int drivingCANId, int turningCANId, double chassisAngularOffset, String moduleName) {
     m_drivingSpark = new SparkFlex(drivingCANId, MotorType.kBrushless);
     m_turningSpark = new SparkMax(turningCANId, MotorType.kBrushless);
 
@@ -71,8 +74,10 @@ public class MAXSwerveModule {
         ResetMode.kResetSafeParameters,
         PersistMode.kPersistParameters);
 
-    m_chassisAngularOffset = chassisAngularOffset;
-    m_desiredState.angle = new Rotation2d(m_turningEncoder.getPosition());
+    m_offsetPreferenceKey = "Drive/Offsets/" + moduleName;
+    Preferences.initDouble(m_offsetPreferenceKey, chassisAngularOffset);
+    m_chassisAngularOffset = Preferences.getDouble(m_offsetPreferenceKey, chassisAngularOffset);
+    m_desiredState.angle = new Rotation2d(m_turningEncoder.getPosition() - m_chassisAngularOffset);
     m_drivingEncoder.setPosition(0);
   }
 
@@ -138,6 +143,13 @@ public class MAXSwerveModule {
   /** Zeroes all the SwerveModule encoders. */
   public void resetEncoders() {
     m_drivingEncoder.setPosition(0);
+  }
+
+  /** Saves the current absolute encoder position as the chassis-forward offset. */
+  public void calibrateChassisAngularOffset() {
+    m_chassisAngularOffset = m_turningEncoder.getPosition();
+    Preferences.setDouble(m_offsetPreferenceKey, m_chassisAngularOffset);
+    m_desiredState = new SwerveModuleState(0.0, new Rotation2d());
   }
 
   /** Writes simulated wheel and steering measurements into the REV simulation devices. */

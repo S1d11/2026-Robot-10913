@@ -238,6 +238,10 @@ public static final double retractedPosition = 0.0;
 public static final double liftPositionTolerance = 0.5;
 ```
 
+The lift uses a relative encoder and therefore requires a pre-match zero. While disabled and with
+the lift physically retracted, press **operator Back**. Automatic lift motion is blocked until this
+calibration has been completed on real hardware.
+
 ---
 
 ## Commands
@@ -327,6 +331,7 @@ Commands.either(
 | Right Bumper | Enable hub tracking |
 | Left Bumper | Disable hub tracking |
 | Start | Zero heading |
+| Back (disabled) | Save swerve offsets with wheels pointed forward |
 
 ### Operator Controller (F310/Xbox)
 | Button | Action |
@@ -341,6 +346,7 @@ Commands.either(
 | POV Left | Close shot preset |
 | POV Up | Medium shot preset |
 | POV Right | Distance shot preset |
+| Back (disabled) | Zero intake lift with the mechanism physically retracted |
 
 ### Adding New Bindings
 
@@ -379,10 +385,14 @@ private void configurePathPlannerCommands() {
 }
 ```
 
-3. **Add event markers** in PathPlanner at desired positions
+3. **Add event markers** in PathPlanner at desired positions, with the command field set to the matching named command
 4. **Select auto** from dashboard chooser
 
 Use a PathPlanner **deadline** group when a continuous command such as `ShootCommand` must run for a fixed duration. Put the `wait` command first (the deadline) and the continuous command second so the command is interrupted and cleaned up when the timer expires.
+
+Only names in `COMPETITION_AUTO_NAMES` in `RobotContainer` appear on the driver-facing chooser.
+Keep `pathplanner/settings.json` synchronized with drivetrain geometry, gearing, motor type, and
+speed limits before regenerating paths.
 
 ### Auto Builder Configuration
 The robot uses `AutoBuilder` for PathPlanner integration:

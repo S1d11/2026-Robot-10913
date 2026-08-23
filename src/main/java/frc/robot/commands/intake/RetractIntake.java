@@ -26,6 +26,6 @@ public class RetractIntake extends Command {
 
   @Override
   public boolean isFinished() {
-    return intake.isLiftRetracted();
+    return !intake.isLiftCalibrated() || intake.isLiftRetracted();
   }
 }

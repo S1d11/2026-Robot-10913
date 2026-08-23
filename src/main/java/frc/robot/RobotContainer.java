@@ -43,6 +43,7 @@ import frc.robot.subsystems.shooter.Shooter;
 import frc.robot.subsystems.shooter.ShooterConstants;
 import frc.robot.subsystems.vision.Vision;
 import frc.robot.telemetry.ElasticTelemetry;
+import java.util.List;
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a
@@ -51,6 +52,10 @@ import frc.robot.telemetry.ElasticTelemetry;
  * subsystems, commands, and button mappings) should be declared here.
  */
 public class RobotContainer {
+
+  // Keep unfinished and diagnostic PathPlanner autos out of the driver-facing chooser.
+  private static final List<String> COMPETITION_AUTO_NAMES =
+      List.of("Auton1", "Auton2", "CenterDefault2", "Centerdefault", "New Auto");
 
   // The robot's subsystems
   private final AprilTagFieldLayout m_fieldLayout;
@@ -76,7 +81,7 @@ public class RobotContainer {
     configureAutoBuilder();
     configureAutoLogging();
     if (AutoBuilder.isConfigured()) {
-      m_autoChooser = AutoBuilder.buildAutoChooser("Auton1");
+      m_autoChooser = buildCompetitionAutoChooser();
     } else {
       m_autoChooser = new SendableChooser<>();
       m_autoChooser.setDefaultOption("None", Commands.none());
@@ -182,6 +187,12 @@ public class RobotContainer {
     new JoystickButton(m_driverController, XboxController.Button.kStart.value)
         .onTrue(new InstantCommand(() -> m_robotDrive.zeroHeading(), m_robotDrive));
 
+    // With the robot disabled and every wheel pointed forward, save absolute swerve offsets.
+    new JoystickButton(m_driverController, XboxController.Button.kBack.value)
+        .onTrue(
+            new InstantCommand(m_robotDrive::calibrateModuleOffsets, m_robotDrive)
+                .ignoringDisable(true));
+
     // ========== OPERATOR CONTROLS (F310 or Keyboard) ==========
 
     // Launch button (A / Space) - runs shooter and hopper forward to score
@@ -236,6 +247,12 @@ public class RobotContainer {
     new JoystickButton(m_operatorController, XboxController.Button.kY.value)
         .whileTrue(retractCommand);
 
+    // With no hardware home switch, zero only when the lift is physically retracted.
+    new JoystickButton(m_operatorController, XboxController.Button.kBack.value)
+        .onTrue(
+            new InstantCommand(m_intake::zeroLiftAtRetractedPosition, m_intake)
+                .ignoringDisable(true));
+
     new Trigger(() -> m_operatorController.getRightTriggerAxis() > 0.5)
         .whileTrue(new IntakeCommand(m_intake));
 
@@ -281,7 +298,29 @@ public class RobotContainer {
    */
   public Command getAutonomousCommand() {
     Command auto = m_autoChooser.getSelected();
-    return auto != null ? auto : Commands.none();
+    return auto != null
+        ? auto.finallyDo(interrupted -> stopAllMechanisms())
+        : Commands.runOnce(this::stopAllMechanisms);
+  }
+
+  private SendableChooser<Command> buildCompetitionAutoChooser() {
+    SendableChooser<Command> chooser = new SendableChooser<>();
+    String defaultAutoName = COMPETITION_AUTO_NAMES.get(0);
+    chooser.setDefaultOption(defaultAutoName, AutoBuilder.buildAuto(defaultAutoName));
+    chooser.addOption("None", Commands.none());
+
+    for (int i = 1; i < COMPETITION_AUTO_NAMES.size(); i++) {
+      String autoName = COMPETITION_AUTO_NAMES.get(i);
+      chooser.addOption(autoName, AutoBuilder.buildAuto(autoName));
+    }
+    return chooser;
+  }
+
+  /** Stops every non-drivetrain mechanism, including outputs started by instant auto commands. */
+  public void stopAllMechanisms() {
+    m_intake.stop();
+    m_hopper.stop();
+    m_shooter.stop();
   }
 
   private void setShooterPreset(String presetName, double rpm) {

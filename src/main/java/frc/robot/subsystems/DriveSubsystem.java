@@ -19,6 +19,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -35,25 +36,29 @@ public class DriveSubsystem extends SubsystemBase {
       new MAXSwerveModule(
           DriveConstants.kFrontLeftDrivingCanId,
           DriveConstants.kFrontLeftTurningCanId,
-          DriveConstants.kFrontLeftChassisAngularOffset);
+          DriveConstants.kFrontLeftChassisAngularOffset,
+          "FrontLeft");
 
   private final MAXSwerveModule m_frontRight =
       new MAXSwerveModule(
           DriveConstants.kFrontRightDrivingCanId,
           DriveConstants.kFrontRightTurningCanId,
-          DriveConstants.kFrontRightChassisAngularOffset);
+          DriveConstants.kFrontRightChassisAngularOffset,
+          "FrontRight");
 
   private final MAXSwerveModule m_rearLeft =
       new MAXSwerveModule(
           DriveConstants.kRearLeftDrivingCanId,
           DriveConstants.kRearLeftTurningCanId,
-          DriveConstants.kBackLeftChassisAngularOffset);
+          DriveConstants.kBackLeftChassisAngularOffset,
+          "RearLeft");
 
   private final MAXSwerveModule m_rearRight =
       new MAXSwerveModule(
           DriveConstants.kRearRightDrivingCanId,
           DriveConstants.kRearRightTurningCanId,
-          DriveConstants.kBackRightChassisAngularOffset);
+          DriveConstants.kBackRightChassisAngularOffset,
+          "RearRight");
 
   // The gyro sensor
 
@@ -329,6 +334,27 @@ public class DriveSubsystem extends SubsystemBase {
     // resetOdometry(new Pose2d(getPose().getTranslation(), new Rotation2d()));
     m_gyro.setYaw(0);
     resetOdometry(new Pose2d(getPose().getTranslation(), new Rotation2d()));
+  }
+
+  /**
+   * Saves module offsets while disabled. Align every wheel straight forward before invoking this.
+   */
+  public void calibrateModuleOffsets() {
+    if (!DriverStation.isDisabled()) {
+      DriverStation.reportWarning(
+          "Swerve offset calibration is only allowed while disabled.", false);
+      return;
+    }
+
+    Pose2d currentPose = getPose();
+    m_frontLeft.calibrateChassisAngularOffset();
+    m_frontRight.calibrateChassisAngularOffset();
+    m_rearLeft.calibrateChassisAngularOffset();
+    m_rearRight.calibrateChassisAngularOffset();
+    resetOdometry(currentPose);
+    ElasticTelemetry.setBoolean("Drive/Module Offsets Calibrated", true);
+    DriverStation.reportWarning(
+        "Saved swerve module offsets. Verify wheel-forward alignment.", false);
   }
 
   public void driveRobotRelative(ChassisSpeeds speeds) {

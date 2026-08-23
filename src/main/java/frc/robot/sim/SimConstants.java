@@ -8,6 +8,7 @@ import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.Distance;
 import edu.wpi.first.units.measure.Mass;
 import edu.wpi.first.wpilibj.DriverStation;
+import frc.robot.Constants.DriveConstants;
 import org.ironmaple.simulation.drivesims.COTS;
 import org.ironmaple.simulation.drivesims.configs.DriveTrainSimulationConfig;
 import org.photonvision.simulation.SimCameraProperties;
@@ -19,11 +20,12 @@ import org.photonvision.simulation.SimCameraProperties;
 public final class SimConstants {
 
   // Robot physical properties
-  public static final Mass kRobotMass = Kilograms.of(54.0); // ~120 lbs
-  public static final Distance kBumperLengthX = Meters.of(0.813); // ~32 inches
-  public static final Distance kBumperWidthY = Meters.of(0.813); // ~32 inches
-  public static final Distance kTrackLength = Meters.of(0.673); // 26.5 inches
-  public static final Distance kTrackWidth = Meters.of(0.673); // 26.5 inches
+  public static final Mass kRobotMass =
+      Kilograms.of(DriveConstants.kRobotMassKilograms); // ~120 lbs
+  public static final Distance kBumperLengthX = Meters.of(DriveConstants.kBumperLengthMeters);
+  public static final Distance kBumperWidthY = Meters.of(DriveConstants.kBumperWidthMeters);
+  public static final Distance kTrackLength = Meters.of(DriveConstants.kWheelBase);
+  public static final Distance kTrackWidth = Meters.of(DriveConstants.kTrackWidth);
 
   // FRC field dimensions (meters)
   public static final double kFieldLengthX = frc.robot.Constants.FieldConstants.kFieldLength;

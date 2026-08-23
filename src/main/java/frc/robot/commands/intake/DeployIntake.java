@@ -26,6 +26,6 @@ public class DeployIntake extends Command {
 
   @Override
   public boolean isFinished() {
-    return intake.isLiftDeployed();
+    return !intake.isLiftCalibrated() || intake.isLiftDeployed();
   }
 }

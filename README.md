@@ -20,6 +20,7 @@ Command-based Java robot code for a swerve-drive robot with shooter, hopper, int
 - Right bumper: enable hub tracking
 - Left bumper: disable hub tracking
 - Start: zero gyro heading
+- Back (disabled, wheels straight forward): save swerve module offsets
 
 ### Operator — port 1
 
@@ -30,15 +31,30 @@ Command-based Java robot code for a swerve-drive robot with shooter, hopper, int
 - X / Y: deploy / retract intake lift
 - Right bumper: spin shooter only
 - D-pad left / up / right: close / medium / distance shooter presets
+- Back (disabled, intake physically retracted): zero the intake lift encoder
 
 ## Autonomous
 
-PathPlanner assets live in `src/main/deploy/pathplanner`. Select an auto through the Elastic chooser. The PathPlanner named commands are:
+PathPlanner assets live in `src/main/deploy/pathplanner`. The Elastic chooser exposes only the vetted competition autos; edit `COMPETITION_AUTO_NAMES` in `RobotContainer` when approving a new routine. The PathPlanner named commands are:
 
 - `DeployIntake`, `RetractIntake`, `StartIntake`, `StopIntake`
 - `SpinUpShooter`, `Shoot`, `StopShooter`
 
 Timed autonomous shooting uses PathPlanner deadline groups so a shot is stopped cleanly when its wait duration ends.
+
+Every event marker must contain a named-command payload. A marker name alone is only an `EventTrigger`; this project intentionally uses direct named commands in the path files.
+
+## Pre-match calibration
+
+Before enabling the robot:
+
+1. With the robot disabled, point all four swerve wheels straight forward and press **driver Back** once. The offsets are saved persistently on the roboRIO.
+2. With the robot disabled, physically retract the intake lift and press **operator Back** once. Automatic lift motion is blocked until this is done on real hardware.
+3. Confirm `Drive/Module Offsets Calibrated` and `Intake/Lift Calibrated` in Elastic.
+
+The 2026 hub status on the dashboard follows Driver Station Game Data and match-time shifts. It is informational; shooter controls remain under operator control.
+
+The current PathPlanner mass and moment of inertia are derived from the drivetrain's 54 kg, rectangular bumper model. Re-measure those values after significant robot changes and update both the constants and PathPlanner settings together.
 
 ## Build and deploy
 
@@ -64,5 +80,6 @@ The team number is configured in `.wpilib/wpilib_preferences.json`.
 - `HopperConstants.java`: feeder gains and speed
 - `IntakeConstants.java`: intake/lift voltages and lift positions
 - `VisionConstants.java`: camera names, transforms, and validation thresholds
+- `src/main/deploy/pathplanner/settings.json`: PathPlanner physical model; keep its module locations, gearing, motor type, speed limit, mass, and MOI aligned with the real robot
 
 Validate all mechanism limits, camera transforms, and shot presets on the real robot before competition use.
